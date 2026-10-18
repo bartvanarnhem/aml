@@ -70,4 +70,8 @@ adb shell run-as com.autominimal.launcher rm files/demo                         
 adb shell am force-stop com.autominimal.launcher                                 # after each change
 ```
 
+## License
+
+The code is licensed under the Apache License 2.0. See `LICENSE`.
+
 Fonts: Instrument Sans, IBM Plex Sans, IBM Plex Mono, Newsreader, Roboto Condensed and JetBrains Mono under the SIL Open Font License (`FONTS-OFL.txt`). Icons: Material Symbols, Apache License 2.0.
