@@ -1,8 +1,10 @@
 package com.autominimal.launcher.data
 
+import android.app.WallpaperManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Rect
 import android.net.Uri
 import android.util.Base64
 import kotlinx.coroutines.Dispatchers
@@ -73,6 +75,22 @@ class BackgroundRepository(private val context: Context) {
 
     fun delete(path: String) {
         File(path).takeIf { it.parentFile == dir }?.delete()
+    }
+
+    /**
+     * Makes [path] the phone's home and lock screen wallpaper, undarkened, cropped to the screen
+     * from the bottom edge up like the launcher draws it.
+     */
+    suspend fun setAsSystemWallpaper(path: String) = withContext(Dispatchers.IO) {
+        val (width, height) = screenPixels()
+        val bitmap = decode(context, path, height) ?: return@withContext
+        val scale = maxOf(width / bitmap.width.toFloat(), height / bitmap.height.toFloat())
+        val cropWidth = (width / scale).toInt().coerceAtMost(bitmap.width)
+        val cropHeight = (height / scale).toInt().coerceAtMost(bitmap.height)
+        val left = (bitmap.width - cropWidth) / 2
+        val crop = Rect(left, bitmap.height - cropHeight, left + cropWidth, bitmap.height)
+        WallpaperManager.getInstance(context)
+            .setBitmap(bitmap, crop, true, WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK)
     }
 
     /** Generates a portrait wallpaper and saves it. Throws with a readable message on failure. */

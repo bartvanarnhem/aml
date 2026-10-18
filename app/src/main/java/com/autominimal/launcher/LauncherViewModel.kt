@@ -441,11 +441,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun applyBackground(path: String?, kind: BackgroundKind, dim: Int) = store.update {
-        // A replaced gallery import is not listed anywhere else, so drop its file.
-        val old = it.background
-        if (old.kind == BackgroundKind.GALLERY && old.path != null && old.path != path) app.backgrounds.delete(old.path)
-        it.copy(background = Background(if (path == null) BackgroundKind.NONE else kind, path, dim))
+    fun applyBackground(path: String?, kind: BackgroundKind, dim: Int) {
+        val previous = config.value.background.path
+        store.update {
+            // A replaced gallery import is not listed anywhere else, so drop its file.
+            val old = it.background
+            if (old.kind == BackgroundKind.GALLERY && old.path != null && old.path != path) app.backgrounds.delete(old.path)
+            it.copy(background = Background(if (path == null) BackgroundKind.NONE else kind, path, dim))
+        }
+        if (path != null && path != previous) {
+            viewModelScope.launch { runCatching { app.backgrounds.setAsSystemWallpaper(path) } }
+        }
     }
 
     /** Drops a generated image. If it was showing, the background goes back to plain. */
