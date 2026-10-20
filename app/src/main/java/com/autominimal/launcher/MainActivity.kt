@@ -363,14 +363,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** From the sort sheet. Picking "My own pick" for an empty list goes straight to choosing apps. */
+    /** From the sort sheet. Picking "My own pick" goes straight to choosing apps. */
     private fun sortBy(groupId: String, source: Source) {
         vm.setGroupSource(groupId, source)
         sortGroupId = null
         if (source != Source.CUSTOM) return
         val screen = vm.config.value.screens.find { s -> s.groups.any { it.id == groupId } } ?: return
         val group = screen.groups.first { it.id == groupId }
-        if (group.custom.isNotEmpty()) return
         vm.editGroup(screen.id, group)
         selectedScreenId = screen.id
         routes.clear()
