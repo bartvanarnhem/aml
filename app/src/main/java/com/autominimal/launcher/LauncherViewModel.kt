@@ -155,10 +155,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private fun mostUsed(cfg: Config, apps: List<AppInfo>): List<AppInfo> {
         if (!app.usage.hasAccess()) return emptyList()
-        val launchers = app.apps.homePackages()
+        val unranked = app.apps.unranked()
         val byPackage = apps.associateBy { it.packageName }
         return app.usage.screenTime(cfg.window).entries
-            .filter { it.value > 0 && it.key !in launchers && it.key !in cfg.hidden }
+            .filter { it.value > 0 && it.key !in unranked && it.key !in cfg.hidden }
             .sortedByDescending { it.value }
             .mapNotNull { byPackage[it.key] }
             .take(5)
@@ -168,20 +168,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     suspend fun appStats(pkg: String): AppStats = withContext(Dispatchers.IO) {
         if (!app.usage.hasAccess()) return@withContext AppStats(null, null, null)
         val window = config.value.window
-        val launchers = app.apps.homePackages()
+        val unranked = app.apps.unranked()
         val time = app.usage.screenTime(window)
-        val ranked = time.entries.filter { it.value > 0 && it.key !in launchers }.sortedByDescending { it.value }.map { it.key }
+        val ranked = time.entries.filter { it.value > 0 && it.key !in unranked }.sortedByDescending { it.value }.map { it.key }
         AppStats(time[pkg] ?: 0L, app.usage.launchCounts(window)[pkg] ?: 0L, ranked.indexOf(pkg).takeIf { it >= 0 })
     }
 
     private fun resolve(group: Group, screen: Screen, cfg: Config, apps: List<AppInfo>): GroupContent {
-        val launchers = app.apps.homePackages()
+        val unranked = app.apps.unranked()
         val byPackage = apps.associateBy { it.packageName }
         val reserved = if (cfg.hideDuplicateApps) screen.appsInOtherCustomLists(group.id) else emptySet()
         fun allowed(key: String) = key !in cfg.hidden
         fun rankedApps(scores: Map<String, Long>, stat: (Long) -> String): List<Tile> {
             val ranked = scores.entries
-                .filter { it.value > 0 && it.key !in launchers && allowed(it.key) && it.key !in reserved }
+                .filter { it.value > 0 && it.key !in unranked && allowed(it.key) && it.key !in reserved }
                 .sortedByDescending { it.value }
                 .mapNotNull { e -> byPackage[e.key]?.let { it to e.value } }
                 .take(cfg.listSize.count)

@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.AdaptiveIconDrawable
@@ -26,24 +27,28 @@ data class AppInfo(
 class AppRepository(private val context: Context) {
     private val launcherApps = context.getSystemService(LauncherApps::class.java)
 
+    /** Every launchable app except this launcher, which would only reopen home. */
     fun loadApps(): List<AppInfo> =
         launcherApps.getActivityList(null, Process.myUserHandle())
-            .filter { it.applicationInfo.packageName !in excluded }
+            .filter { it.applicationInfo.packageName != context.packageName }
             .map { AppInfo(it.label.toString(), it.applicationInfo.packageName, it.componentName) }
             .distinctBy { it.component }
             .sortedBy { it.label.lowercase() }
 
-    /** This launcher, plus Settings, which is not useful in the app lists. */
-    private val excluded = setOf(context.packageName, "com.android.settings")
-
     /**
-     * Launcher apps; returning home would otherwise count as opening them. Settings' fallback home
-     * (negative priority) is not a real launcher, and Settings is excluded from the lists anyway.
+     * Apps left out of the usage rankings. Launchers, because returning home would otherwise count
+     * as opening them; Settings' fallback home (negative priority) is not a real launcher. Settings
+     * and the default phone app, because they would crowd the lists (the phone app has its own
+     * shortcut). Without a default dialer, DIAL resolves to the system chooser ("android").
      */
-    fun homePackages(): Set<String> =
-        context.packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), 0)
+    fun unranked(): Set<String> {
+        val launchers = context.packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), 0)
             .filter { it.priority >= 0 }
-            .map { it.activityInfo.packageName }.toSet()
+            .map { it.activityInfo.packageName }
+        val dialer = context.packageManager.resolveActivity(Intent(Intent.ACTION_DIAL), PackageManager.MATCH_DEFAULT_ONLY)
+            ?.activityInfo?.packageName?.takeIf { it != "android" }
+        return launchers.toSet() + setOfNotNull("com.android.settings", dialer)
+    }
 
     fun launch(app: AppInfo) {
         runCatching { launcherApps.startMainActivity(app.component, Process.myUserHandle(), null, null) }
