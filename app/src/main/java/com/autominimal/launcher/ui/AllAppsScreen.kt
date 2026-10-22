@@ -34,6 +34,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +45,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -87,6 +90,9 @@ fun AllAppsScreen(
     val focus = LocalFocusManager.current
     val scope = rememberCoroutineScope()
     val currentOnClose by rememberUpdatedState(onClose)
+    // Open with the keyboard up, so typing starts the search right away.
+    val searchFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { searchFocus.requestFocus() }
 
     val visible = remember(apps, query) {
         val q = query.normalized()
@@ -122,7 +128,7 @@ fun AllAppsScreen(
     ) {
         SearchField(
             query, { query = it }, "Search ${apps.size} apps",
-            Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp),
+            Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp).focusRequester(searchFocus),
         ) {
             visible.firstOrNull()?.let(onLaunch)
             focus.clearFocus()
