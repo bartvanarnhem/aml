@@ -238,7 +238,8 @@ private fun Clock(compact: Boolean = false, trailing: (@Composable () -> Unit)? 
 
 /**
  * One screen's blocks. A full-height block shows [com.autominimal.launcher.data.ListSize.count] rows;
- * two stacked blocks show half that each. Rows shrink only when the screen is too short.
+ * two stacked blocks split what is left after the lower header, the upper one taking the extra row
+ * when it doesn't divide evenly. Rows shrink only when the screen is too short.
  */
 @Composable
 private fun ScreenPage(
@@ -305,11 +306,13 @@ private fun ScreenBlocks(
         }
         val size = config.listSize
         val count = size.count
-        val half = count / 2
-        val row = min(size.rowDp.dp, (maxHeight - HeaderHeight) / count).coerceAtLeast(1.dp)
+        val upper = count / 2
+        val lower = count - 1 - upper
+        // Every text size fills the same height; bigger text just fits fewer rows.
+        val row = (min(ListHeight, maxHeight - HeaderHeight) / count).coerceAtLeast(1.dp)
         // A lower block's gap plus header takes exactly one row, so its rows line up with a full-height list beside it.
         val stackGap = (row - HeaderHeight).coerceAtLeast(0.dp)
-        val stackedTop = HeaderHeight + row * half
+        val stackedTop = HeaderHeight + row * upper
         CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
                 listOf(placed.take(screen.layout.left), placed.drop(screen.layout.left)).filter { it.isNotEmpty() }.forEach { column ->
@@ -320,7 +323,7 @@ private fun ScreenBlocks(
                             } else {
                                 Block(
                                     group, contents[group.id], icons, config,
-                                    maxRows = if (column.size > 1) half else count,
+                                    maxRows = if (column.size == 1) count else if (i == 0) upper else lower,
                                     row = row,
                                     onTile = onTile, onTileLongPress = onTileLongPress, onMissing = onMissing, onHeader = onHeader,
                                     modifier = if (i < column.lastIndex) Modifier.heightIn(min = stackedTop) else Modifier,
@@ -335,6 +338,9 @@ private fun ScreenBlocks(
 }
 
 private val HeaderHeight = 24.dp
+
+/** Height of the rows in a full-height list, whatever the text size. */
+private val ListHeight = 276.dp
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

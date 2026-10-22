@@ -150,12 +150,12 @@ enum class CornerShortcut(val label: String) {
     PHOTOS("Photos"),
 }
 
-/** How many rows a full home list shows, with the row height, icon size and name size for that text size. */
+/** How many rows a full home list shows, with the icon size and name size for that text size. */
 @Serializable
-enum class ListSize(val label: String, val count: Int, val iconDp: Int, val rowDp: Int, val labelSp: Int) {
-    COMPACT("Small", 7, 28, 38, 15),
-    STANDARD("Medium", 5, 34, 46, 17),
-    BIG("Large", 3, 40, 56, 20),
+enum class ListSize(val label: String, val count: Int, val iconDp: Int, val labelSp: Int) {
+    COMPACT("Small", 7, 28, 15),
+    STANDARD("Medium", 6, 34, 17),
+    BIG("Large", 5, 40, 20),
 }
 
 /** How many days the calendar block covers, today included. */
