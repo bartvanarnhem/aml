@@ -24,6 +24,13 @@ class WhatsAppListener : NotificationListenerService() {
         val conversation = conversationName(extras) ?: return
         val log = (application as com.autominimal.launcher.LauncherApp).people.waLog
         val pkg = sbn.packageName
+        // Backups, calls, "checking for new messages" and web sessions are not messages. A progress
+        // title like "Backup in progress" is never a chat, so drop lines an earlier version logged for it.
+        if (isProgress(n)) {
+            log.forget(pkg, conversation)
+            return
+        }
+        if (!isMessage(n)) return
         // The conversation shortcut lets a tap on the launcher open this exact chat.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) n.shortcutId?.let {
             (application as com.autominimal.launcher.LauncherApp).people.chatShortcuts.put(pkg, conversation, it)
@@ -41,6 +48,15 @@ class WhatsAppListener : NotificationListenerService() {
             if (remember("$pkg|$conversation|$sender|$time")) log.record(conversation, time, pkg = pkg)
         }
     }
+
+    private fun isProgress(n: Notification): Boolean =
+        n.category == Notification.CATEGORY_PROGRESS ||
+            n.extras.getInt(Notification.EXTRA_PROGRESS_MAX) > 0 ||
+            n.extras.getBoolean(Notification.EXTRA_PROGRESS_INDETERMINATE)
+
+    private fun isMessage(n: Notification): Boolean =
+        n.flags and (Notification.FLAG_ONGOING_EVENT or Notification.FLAG_FOREGROUND_SERVICE) == 0 &&
+            n.category !in STATUS_CATEGORIES
 
     private fun isMessageApp(pkg: String): Boolean = when (pkg) {
         WHATSAPP, WHATSAPP_BUSINESS, SIGNAL, TELEGRAM, TELEGRAM_WEB -> true
@@ -67,5 +83,9 @@ class WhatsAppListener : NotificationListenerService() {
 
     private companion object {
         val APP_TITLES = setOf("WhatsApp", "WhatsApp Business", "Signal", "Telegram", "Messages")
+        val STATUS_CATEGORIES = setOf(
+            Notification.CATEGORY_CALL, Notification.CATEGORY_SERVICE, Notification.CATEGORY_STATUS,
+            Notification.CATEGORY_SYSTEM, Notification.CATEGORY_ERROR, Notification.CATEGORY_RECOMMENDATION,
+        )
     }
 }

@@ -403,6 +403,20 @@ class WhatsAppLog(context: Context) {
         if (file.length() > MAX_BYTES) trim()
     }
 
+    /** Removes every line for this conversation, e.g. a status notification title logged by mistake. */
+    @Synchronized
+    fun forget(pkg: String, conversation: String) {
+        if (!file.exists()) return
+        val clean = conversation.replace('\t', ' ').replace('\n', ' ').trim()
+        val lines = file.readLines()
+        val keep = lines.filterNot { line ->
+            val parts = line.split('\t')
+            parts.getOrNull(1) == clean && (parts.getOrNull(3)?.takeIf { it.isNotBlank() } ?: WHATSAPP) == pkg
+        }
+        if (keep.size == lines.size) return
+        file.writeText(keep.joinToString("\n", postfix = if (keep.isEmpty()) "" else "\n"))
+    }
+
     @Synchronized
     fun counts(since: Long): List<ConversationCount> {
         if (!file.exists()) return emptyList()
